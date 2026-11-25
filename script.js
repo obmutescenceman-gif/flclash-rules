@@ -21,7 +21,9 @@ const RULESETS = [
   { name: "MyAdsLite", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/AdvertisingLite/AdvertisingLite_Classical_No_Resolve.yaml", to: "REJECT" },
   { name: "MyHijack", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Hijacking/Hijacking_No_Resolve.yaml", to: "REJECT" },
   { name: "MyDirect", url: "https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/direct.yaml", to: "DIRECT" },
-  { name: "MyFCM", url: "https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/fcm.yaml", to: "FCM|谷歌|Google" },
+  // FCM 有现成的：blackmatrix7 的 GoogleFCM（15 域名 + 26 IP，共 41 条）
+  // 想用我自己写的 15 条，把下一行 url 换成 https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/fcm.yaml
+  { name: "MyFCM", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GoogleFCM/GoogleFCM_No_Resolve.yaml", to: "FCM|谷歌|Google" },
   { name: "MyChinaIP", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaIPs/ChinaIPs_Classical_No_Resolve.yaml", to: "DIRECT", tail: true },
 
   // ===== 按需：去掉行首 // 就生效 =====
