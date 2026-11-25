@@ -17,20 +17,30 @@ const INTERVAL = 86400; // 规则集更新间隔（秒）
 // url ：完整地址，behavior 一律 classical
 // to  ：REJECT / DIRECT / 组名（可写关键词，多个用 | 分隔，找不到就退第一个组）
 // tail：true = 插在订阅规则最后、MATCH 之前；不写 = 插在最前
+// 脚本会自动补 provider 定义，所以 App 里不用"安装"这些规则集，下载是核心按定义做的
 const RULESETS = [
+  // 广告/追踪域名 → 拦掉（38,066 条，1.1 MB，上游每天更新）
   { name: "MyAdsLite", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/AdvertisingLite/AdvertisingLite_Classical_No_Resolve.yaml", to: "REJECT" },
+  // 劫持/运营商推广/短链跳转 → 拦掉（228 条，很轻，副作用小）
   { name: "MyHijack", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Hijacking/Hijacking_No_Resolve.yaml", to: "REJECT" },
+  // 系统连通性检测 + NTP 时间同步（16 条，自写）→ 必须直连，否则 WiFi 提示无网络、时间乱跳
   { name: "MyDirect", url: "https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/direct.yaml", to: "DIRECT" },
-  // FCM 有现成的：blackmatrix7 的 GoogleFCM（15 域名 + 26 IP，共 41 条）
-  // 想用我自己写的 15 条，把下一行 url 换成 https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/fcm.yaml
+  // FCM 推送通道（现成 41 条：15 域名 + 26 IP）→ 指向订阅里的 FCM/谷歌组，锁屏消息靠它
+  // 想用我自己写的 15 条，把下面 url 换成 https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/fcm.yaml
   { name: "MyFCM", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GoogleFCM/GoogleFCM_No_Resolve.yaml", to: "FCM|谷歌|Google" },
+  // 国内 IP 段（19,619 条）→ 放最后直连，代替 GEOIP,CN；订阅里本来就有 GEOIP,CN 的话给这行加 off: true
   { name: "MyChinaIP", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaIPs/ChinaIPs_Classical_No_Resolve.yaml", to: "DIRECT", tail: true },
 
   // ===== 按需：去掉行首 // 就生效 =====
+  // 隐私追踪域名 → 拦掉（39,936 条，误杀风险最高，先别开）
   // { name: "MyPrivacy", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Privacy/Privacy_Classical_No_Resolve.yaml", to: "REJECT" },
+  // OpenAI/ChatGPT（35 条）→ 固定走某个地区，避免被风控
   // { name: "MyOpenAI", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI_No_Resolve.yaml", to: "OpenAI|ChatGPT|AI" },
+  // Claude/Anthropic（3 条）→ 同上
   // { name: "MyClaude", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Anthropic/Anthropic_No_Resolve.yaml", to: "Claude|Anthropic|AI" },
+  // Steam 登录/商店/社区（69 条）→ 走代理组
   // { name: "MySteam", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Steam/Steam_No_Resolve.yaml", to: "Steam|游戏" },
+  // YouTube（183 条）→ 走代理组
   // { name: "MyYouTube", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTube/YouTube_No_Resolve.yaml", to: "YouTube|谷歌|Google" },
 ];
 
