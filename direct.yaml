@@ -1,0 +1,30 @@
+# FlClash / mihomo rule-provider（behavior: classical）
+# 必须直连的系统流量：连通性检测 + 时间同步
+#
+# 为什么单列：这些域名如果被规则带走代理，会出现
+#   - 连着 WiFi 却提示「无网络」
+#   - 公共 WiFi 认证页弹不出来
+#   - 系统时间漂移（进而 TLS 校验失败、证书报错）
+#
+# 引用方式：RULE-SET,MyDirect,DIRECT   ← 策略由 RULE-SET 那一行决定
+
+payload:
+  # --- 系统连通性检测 ---
+  - DOMAIN-SUFFIX,connectivitycheck.gstatic.com
+  - DOMAIN-SUFFIX,connectivitycheck.android.com
+  - DOMAIN-SUFFIX,connect.rom.miui.com
+  - DOMAIN-SUFFIX,connectivitycheck.platform.hicloud.com
+  - DOMAIN-SUFFIX,wifi.vivo.com.cn
+  - DOMAIN-SUFFIX,conn1.oppomobile.com
+  - DOMAIN-SUFFIX,captive.apple.com
+  - DOMAIN-SUFFIX,www.msftconnecttest.com
+  - DOMAIN-SUFFIX,www.msftncsi.com
+
+  # --- NTP 时间同步 ---
+  - DOMAIN-SUFFIX,pool.ntp.org
+  - DOMAIN-SUFFIX,time.android.com
+  - DOMAIN-SUFFIX,time.windows.com
+  - DOMAIN-SUFFIX,time.apple.com
+  - DOMAIN-SUFFIX,ntp.aliyun.com
+  - DOMAIN-SUFFIX,time1.cloud.tencent.com
+  - DOMAIN-SUFFIX,time.cloudflare.com

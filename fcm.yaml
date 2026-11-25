@@ -1,0 +1,29 @@
+# FlClash / mihomo rule-provider（behavior: classical）
+# FCM / Google 推送 —— Android 后台消息通道，实际走 TCP 5228-5230
+#
+# 说明：Google 规则集里已有 DOMAIN-SUFFIX,google.com，这里写显式规则不影响结果，
+# 好处是能把 FCM 从 Google 大组里单独拎出来，需要时固定指到某个组/节点。
+#
+# 引用方式：RULE-SET,MyFCM,Google   ← 策略由 RULE-SET 那一行决定，文件里不写目标
+
+payload:
+  # --- FCM 主通道 ---
+  - DOMAIN,mtalk.google.com
+  - DOMAIN-SUFFIX,mtalk.google.com
+  - DOMAIN,mtalk4.google.com
+  - DOMAIN,mtalk-staging.google.com
+
+  # --- 备用通道 alt1 ~ alt6 ---
+  - DOMAIN,alt1-mtalk.google.com
+  - DOMAIN,alt2-mtalk.google.com
+  - DOMAIN,alt3-mtalk.google.com
+  - DOMAIN,alt4-mtalk.google.com
+  - DOMAIN,alt5-mtalk.google.com
+  - DOMAIN,alt6-mtalk.google.com
+
+  # --- 注册 / 令牌 / 远程配置 ---
+  - DOMAIN,android.clients.google.com
+  - DOMAIN,firebaseinstallations.googleapis.com
+  - DOMAIN,firebaseremoteconfig.googleapis.com
+  - DOMAIN,device-provisioning.googleapis.com
+  - DOMAIN,fcm.googleapis.com
