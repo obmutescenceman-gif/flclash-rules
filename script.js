@@ -18,7 +18,7 @@ const INTERVAL = 86400; // 规则集更新间隔（秒）
 // to  ：REJECT / DIRECT / 组名（可写关键词，多个用 | 分隔，找不到就退第一个组）
 // tail：true = 插在订阅规则最后、MATCH 之前；不写 = 插在最前
 const RULESETS = [
-  { name: "MyAdsLite", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Advertising/AdvertisingLite_Classical_No_Resolve.yaml", to: "REJECT" },
+  { name: "MyAdsLite", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/AdvertisingLite/AdvertisingLite_Classical_No_Resolve.yaml", to: "REJECT" },
   { name: "MyHijack", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Hijacking/Hijacking_No_Resolve.yaml", to: "REJECT" },
   { name: "MyDirect", url: "https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/direct.yaml", to: "DIRECT" },
   { name: "MyFCM", url: "https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/fcm.yaml", to: "FCM|谷歌|Google" },
