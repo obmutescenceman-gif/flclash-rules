@@ -1,52 +1,49 @@
-// FlClash 覆写脚本 v5：一个数组管所有规则集
+// FlClash 覆写脚本 v6：跟着 App 里已有的规则集走
 // 位置：工具 → 进阶配置 → 脚本（全局），或 订阅详情 → 脚本（单订阅）
 // 入口：main(config)。
 //
-// 每条 { name, url, to } 自动做三件事：
-//   1) 在 rule-providers 里补一个 provider（App 里已有同名就沿用你的，不覆盖）
-//   2) 在 rules 里插一条 RULE-SET,name,目标
-//   3) 跑多少次结果都一样
-// 加规则集 = 数组加一行；关掉 = 那行加 off: true；换顺序 = 挪位置。
+// 核心逻辑：按 URL 认规则集。
+//   - App 规则集页里已经有同一个 URL → 沿用你的名字和定义，不重复添加
+//   - 没有 → 脚本自己补一个定义（behavior: classical）
+//   - 然后把 RULE-SET 插进 rules，跑多少次都一样
+//
+// 加规则集 = RULESETS 加一行；关掉 = 那行加 off: true
 
-const ENABLE_ALL = true; // 总开关：false 时脚本什么都不做
+const ENABLE_ALL = true; // 总开关
 const PROVIDER_PROXY = ""; // 下载规则集走哪个组；留空=直连。raw 拉不到时填 "Auto"
 const INTERVAL = 86400; // 规则集更新间隔（秒）
 
 // ===== 规则集清单 =====
-// name：唯一，App 里手动加的话必须同名
-// url ：完整地址，behavior 一律 classical
+// url ：完整地址，behavior 必须 classical
 // to  ：REJECT / DIRECT / 组名（可写关键词，多个用 | 分隔，找不到就退第一个组）
 // tail：true = 插在订阅规则最后、MATCH 之前；不写 = 插在最前
-// 脚本会自动补 provider 定义，所以 App 里不用"安装"这些规则集，下载是核心按定义做的
 const RULESETS = [
-  // 广告/追踪域名 → 拦掉（38,066 条，1.1 MB，上游每天更新）
-  { name: "MyAdsLite", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/AdvertisingLite/AdvertisingLite_Classical_No_Resolve.yaml", to: "REJECT" },
-  // 劫持/运营商推广/短链跳转 → 拦掉（228 条，很轻，副作用小）
-  { name: "MyHijack", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Hijacking/Hijacking_No_Resolve.yaml", to: "REJECT" },
-  // 系统连通性检测 + NTP 时间同步（16 条，自写）→ 必须直连，否则 WiFi 提示无网络、时间乱跳
-  { name: "MyDirect", url: "https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/direct.yaml", to: "DIRECT" },
-  // FCM 推送通道（现成 41 条：15 域名 + 26 IP）→ 指向订阅里的 FCM/谷歌组，锁屏消息靠它
-  // 想用我自己写的 15 条，把下面 url 换成 https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/fcm.yaml
-  { name: "MyFCM", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GoogleFCM/GoogleFCM_No_Resolve.yaml", to: "FCM|谷歌|Google" },
-  // 国内 IP 段（19,619 条）→ 放最后直连，代替 GEOIP,CN；订阅里本来就有 GEOIP,CN 的话给这行加 off: true
-  { name: "MyChinaIP", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaIPs/ChinaIPs_Classical_No_Resolve.yaml", to: "DIRECT", tail: true },
+  // 广告/追踪域名 → 拦掉（38,066 条，1.1 MB）。不要用全量 Advertising（291,159 条），太重且误杀多
+  { name: "AdvertisingLite_Classical_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/AdvertisingLite/AdvertisingLite_Classical_No_Resolve.yaml", to: "REJECT" },
+  // 劫持/运营商推广/短链跳转 → 拦掉（228 条，很轻）
+  { name: "Hijacking_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Hijacking/Hijacking_No_Resolve.yaml", to: "REJECT" },
+  // 系统连通性检测 + NTP（16 条，自写）→ 必须直连，否则 WiFi 提示无网络、时间乱跳
+  { name: "direct", url: "https://raw.githubusercontent.com/obmutescenceman-gif/flclash-rules/main/direct.yaml", to: "DIRECT" },
+  // FCM 推送通道（41 条）→ 指向订阅里的 FCM/谷歌组；不要同时再挂自写的 fcm.yaml，两套会重复
+  { name: "GoogleFCM_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/GoogleFCM/GoogleFCM_No_Resolve.yaml", to: "FCM|谷歌|Google" },
+  // 国内 IP 段（19,619 条）→ 放最后直连，代替 GEOIP,CN；订阅里已有 GEOIP,CN 就加 off: true
+  { name: "ChinaIPs_Classical_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/ChinaIPs/ChinaIPs_Classical_No_Resolve.yaml", to: "DIRECT", tail: true },
 
   // ===== 按需：去掉行首 // 就生效 =====
-  // 隐私追踪域名 → 拦掉（39,936 条，误杀风险最高，先别开）
-  // { name: "MyPrivacy", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Privacy/Privacy_Classical_No_Resolve.yaml", to: "REJECT" },
-  // OpenAI/ChatGPT（35 条）→ 固定走某个地区，避免被风控
-  // { name: "MyOpenAI", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI_No_Resolve.yaml", to: "OpenAI|ChatGPT|AI" },
-  // Claude/Anthropic（3 条）→ 同上
-  // { name: "MyClaude", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Anthropic/Anthropic_No_Resolve.yaml", to: "Claude|Anthropic|AI" },
-  // Steam 登录/商店/社区（69 条）→ 走代理组
-  // { name: "MySteam", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Steam/Steam_No_Resolve.yaml", to: "Steam|游戏" },
-  // YouTube（183 条）→ 走代理组
-  // { name: "MyYouTube", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTube/YouTube_No_Resolve.yaml", to: "YouTube|谷歌|Google" },
+  // 隐私追踪（39,936 条，误杀风险最高）
+  // { name: "Privacy_Classical_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Privacy/Privacy_Classical_No_Resolve.yaml", to: "REJECT" },
+  // OpenAI（35 条）→ 固定走某地区，避免风控
+  // { name: "OpenAI_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI_No_Resolve.yaml", to: "OpenAI|ChatGPT|AI" },
+  // Claude（3 条）
+  // { name: "Anthropic_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Anthropic/Anthropic_No_Resolve.yaml", to: "Claude|Anthropic|AI" },
+  // Steam（69 条）
+  // { name: "Steam_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Steam/Steam_No_Resolve.yaml", to: "Steam|游戏" },
+  // YouTube（183 条）
+  // { name: "YouTube_No_Resolve", url: "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/YouTube/YouTube_No_Resolve.yaml", to: "YouTube|谷歌|Google" },
 ];
 
-// 旧版本脚本用过的名字：升级后清掉，免得规则重复
-const CLEAN_RULES = ["MyAds"];
-const CLEAN_PROVIDERS = ["MyAds"];
+// 旧脚本用过的名字：清掉它们的 RULE-SET 引用，免得重复
+const OLD_NAMES = ["MyAds", "MyAdsLite", "MyHijack", "MyDirect", "MyFCM", "MyChinaIP"];
 
 function pickGroup(config, patterns) {
   const groups = config["proxy-groups"] || [];
@@ -67,49 +64,59 @@ function targetOf(config, to) {
   return pickGroup(config, t.split("|"));
 }
 
-function ensureProvider(config, item) {
-  config["rule-providers"] = config["rule-providers"] || {};
-  if (config["rule-providers"][item.name]) return false;
-  const p = {
-    type: "http",
-    behavior: "classical",
-    url: item.url,
-    path: "./ruleset/" + item.name + ".yaml",
-    interval: item.interval || INTERVAL,
-  };
-  if (PROVIDER_PROXY) p.proxy = PROVIDER_PROXY;
-  config["rule-providers"][item.name] = p;
-  return true;
+// 按 URL 找已有 provider；找不到再用 name，最后才新建
+function resolveProviders(config, items, added) {
+  const rp = (config["rule-providers"] = config["rule-providers"] || {});
+  const used = new Set(Object.keys(rp));
+  return items.map((it) => {
+    const byUrl = Object.keys(rp).find((k) => String((rp[k] || {}).url || "") === it.url);
+    const byName = Object.keys(rp).find((k) => k === it.name);
+    let key = byUrl || byName;
+    if (!key) {
+      key = it.name;
+      let n = 2;
+      while (used.has(key)) key = it.name + "_" + n++;
+      const def = {
+        type: "http",
+        behavior: "classical",
+        url: it.url,
+        path: "./ruleset/" + key + ".yaml",
+        interval: it.interval || INTERVAL,
+      };
+      if (PROVIDER_PROXY) def.proxy = PROVIDER_PROXY;
+      rp[key] = def;
+      used.add(key);
+      added.push(key);
+    }
+    return Object.assign({}, it, { key: key });
+  });
 }
 
 function main(config) {
   if (!ENABLE_ALL) return config;
 
   const items = RULESETS.filter((r) => r && r.name && r.url && !r.off);
-
-  // 清掉旧版脚本留下的 provider
-  const providers = config["rule-providers"] || {};
-  CLEAN_PROVIDERS.forEach((n) => {
-    if (providers[n] && !items.some((it) => it.name === n)) delete providers[n];
-  });
-  config["rule-providers"] = providers;
-
   if (!items.length) return config;
 
-  const added = items.filter((it) => ensureProvider(config, it)).map((it) => it.name);
+  const added = [];
+  const resolved = resolveProviders(config, items, added);
+  const keep = {};
+  resolved.forEach((r) => (keep[r.key] = true));
 
-  // 先删掉上次插入的同名规则，跑多少次结果都一样
-  const names = items
-    .map((it) => it.name)
-    .concat(CLEAN_RULES)
-    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const mine = new RegExp("^RULE-SET,(" + names.join("|") + "),", "i");
-  const kept = (config.rules || []).filter((r) => !mine.test(String(r)));
+  // 删掉上次插的 RULE-SET（按当前名字 + 旧名字），保证幂等
+  const drop = {};
+  Object.keys(keep).forEach((k) => (drop[k] = true));
+  OLD_NAMES.forEach((n) => (drop[n] = true));
+  const kept = (config.rules || []).filter((line) => {
+    const m = /^RULE-SET,([^,]+),/i.exec(String(line));
+    if (!m) return true;
+    return !drop[m[1].trim()];
+  });
 
   const head = [];
   const tail = [];
-  items.forEach((it) => {
-    const line = "RULE-SET," + it.name + "," + targetOf(config, it.to);
+  resolved.forEach((it) => {
+    const line = "RULE-SET," + it.key + "," + targetOf(config, it.to);
     (it.tail ? tail : head).push(line);
   });
 
@@ -120,7 +127,7 @@ function main(config) {
 
   if (config.__dshDebug) {
     config.__addedProviders = added;
-    config.__rulesets = items.map((it) => it.name);
+    config.__rulesets = resolved.map((r) => r.key);
   }
   return config;
 }
@@ -129,17 +136,23 @@ function main(config) {
 if (typeof module !== "undefined" && require.main === module) {
   const cfg = {
     "proxy-groups": [{ name: "🚀 节点选择" }, { name: "🔯 谷歌FCM" }, { name: "🐟 漏网之鱼" }],
-    "rule-providers": { MyAds: { type: "http", behavior: "classical", url: "https://example.com/old.yaml" } },
-    rules: ["RULE-SET,MyAds,REJECT", "DOMAIN,example.com,DIRECT", "MATCH,🐟 漏网之鱼"],
+    "rule-providers": {
+      AdvertisingLite_Classical_No_Resolve: { type: "http", behavior: "classical", url: RULESETS[0].url },
+      direct: { type: "http", behavior: "classical", url: RULESETS[2].url },
+      Hijacking_No_Resolve: { type: "http", behavior: "classical", url: RULESETS[1].url },
+      GoogleFCM_No_Resolve: { type: "http", behavior: "classical", url: RULESETS[3].url },
+      ChinaIPs_Classical_No_Resolve: { type: "http", behavior: "classical", url: RULESETS[4].url },
+      MyAds: { type: "http", behavior: "classical", url: "https://example.com/old.yaml" },
+    },
+    rules: ["RULE-SET,MyAds,REJECT", "RULE-SET,MyFCM,🔯 谷歌FCM", "DOMAIN,example.com,DIRECT", "MATCH,🐟 漏网之鱼"],
     __dshDebug: true,
   };
   const out = main(JSON.parse(JSON.stringify(cfg)));
   const again = main(JSON.parse(JSON.stringify(out)));
   console.log(JSON.stringify({
     providers: Object.keys(out["rule-providers"]),
-    oldGone: !out["rule-providers"].MyAds,
-    head: out.rules.slice(0, 5),
-    tail: out.rules.slice(-3),
+    addedProviders: out.__addedProviders,
+    rules: out.rules,
     idempotent: JSON.stringify(again.rules) === JSON.stringify(out.rules),
   }, null, 2));
 }
